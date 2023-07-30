@@ -17,10 +17,7 @@ export function Home() {
         get ready to play the game that's taking the music world by storm!
       </p>
       <p>
-        To fully enjoy the game and save your results and high scores, we
-        recommend creating an account. Simply click on the "Create account"
-        button to get started. By creating account, you can compete with other
-        players and see how you rank on the leaderboard.
+      Play the first note to make the character start moving. Once you stop playing, the character will advance towards the next musical clef. New notes will appear at the clef, indicating the available directions. Play the correct note corresponding to the desired direction to move. Make sure to tune your instrument A = 442.
       </p>
 
       <p className="buttons">

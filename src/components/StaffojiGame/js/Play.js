@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import Player from './player'
+import Player from './Character'
 import { createPlatforms } from './objects/platforms'
 import { createWater } from './objects/water'
 import { createClefs } from './objects/clefs'
@@ -166,15 +166,7 @@ class Play extends Phaser.Scene {
       null,
       this
     )
-
-    this.physics.add.overlap(
-      this.player,
-      this.stone,
-      this.playerDeathOfStone,
-      null,
-      this
-    )
-
+    
     // Handel wrnog played notes
     eventEmitter.on('wrongTone', this.dropTheStone, this)
     eventEmitter.on('playerWin', this.playerWin, this)
@@ -620,7 +612,7 @@ class Play extends Phaser.Scene {
     this.menuButton = this.addButton(
       this.gameOverWindow.x + 80,
       this.gameOverWindow.y + 120,
-      'menuButton'
+      'homeButton'
     )
       .setScrollFactor(0)
       .setDepth(102)
@@ -646,13 +638,16 @@ class Play extends Phaser.Scene {
    * Restarts the game.
    */
   restartGame() {
-    this.scene.restart()
+    // Do not reload because of side effect eith stone dropping multiple times.
+    this.destroy()
+    this.scene.start('Play')
   }
 
   /**
    * Handles the menu button click.
    */
   handleMenuButton() {
+    this.destroy()
     this.scene.start('Menu')
   }
 
@@ -667,7 +662,11 @@ class Play extends Phaser.Scene {
   /**
    * Cleans up and destroys the Play scene.
    */
-  destroy() {}
+  destroy() {
+    this.shutDownListener()
+    this.music.stop()
+    console.log('destroying')
+  }
 }
 
 export default Play
@@ -676,5 +675,5 @@ export default Play
 // https://opengameart.org/content/completion-sound za completetask i gamae.waw
 // bg music https://opengameart.org/content/woodland-fantasy
 // song 18 https://opengameart.org/content/crystal-cave-song18
-// THE MUSIC CONTINUE PLAYING IF I PRESS MENU BUTTON WHILE CHARACTER IS MOVING
-// YOU WIN AND YOU LOST TEXT
+
+// AUTOMATED AND PEER TO PEER TEST RAPPORT

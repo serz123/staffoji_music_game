@@ -200,3 +200,5 @@ $RECYCLE.BIN/
 /build
 
 # End of https://www.gitignore.io/api/node,linux,macos,windows,visualstudiocode
+# Local Netlify folder
+.netlify

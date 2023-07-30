@@ -33,7 +33,7 @@ class Player extends Phaser.GameObjects.Sprite {
     this.stopJump = false
     this.isDead = false
     this.readyForMusic = false
-    this.cursor = this.scene.input.keyboard.createCursorKeys()
+    // this.cursor = this.scene.input.keyboard.createCursorKeys()
 
     this.anims.create({
       key: 'idle',
@@ -103,10 +103,10 @@ class Player extends Phaser.GameObjects.Sprite {
       )
     }
 
-    if (this.cursor.up.isDown && this.body.touching.down) {
+    /* if (this.cursor.up.isDown && this.body.touching.down) {
       this.body.setVelocityY(-590)
       this.anims.play('player_jump', true)
-    }
+    }*/
 
     if (!this.madeFirstMove && this.detectedTone !== null) {
       // First move
@@ -114,22 +114,22 @@ class Player extends Phaser.GameObjects.Sprite {
       this.body.setVelocityX(160)
       this.flipX = false
       this.anims.play('player_walk', true)
-    } else if (this.cursor.left.isDown) {
+    } /* else if (this.cursor.left.isDown) {
       this.body.setVelocityX(-160)
       this.flipX = true
       this.anims.play('player_walk', true)
-    } else if (
+    } */ else if (
       this.detectedTone !== null &&
       this.detectedTone === this.leftDirection
     ) {
       this.body.setVelocityX(-160)
       this.flipX = true
       this.anims.play('player_walk', true)
-    } else if (this.cursor.right.isDown) {
+    } /* else if (this.cursor.right.isDown) {
       this.body.setVelocityX(160)
       this.flipX = false
       this.anims.play('player_walk', true)
-    } else if (
+    } */ else if (
       this.detectedTone !== null &&
       this.detectedTone === this.rightDirection
     ) {
@@ -180,7 +180,6 @@ class Player extends Phaser.GameObjects.Sprite {
       // Wrong note played
       this.body.setVelocityX(0)
       this.body.setVelocityY(0)
-
       // If the wrong note is played, the player dies
       eventEmitter.emit('wrongTone')
       this.detectedTone = null // Reset the detected tone to null to prevent continuous dying
@@ -218,4 +217,3 @@ class Player extends Phaser.GameObjects.Sprite {
 export default Player
 
 // REMOVE EVENT LISTENER AT THE END!!!!!!!!!!!!!!!!!
-// REMOVE ABILITIES TO PLAY WITH KEYBOARD!!!!!!!!!!!!!!

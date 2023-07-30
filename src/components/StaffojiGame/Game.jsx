@@ -35,10 +35,6 @@ export function Game() {
     }
     const game = new Phaser.Game(config)
 
-    // Hide the default Phaser canvas
-    const defaultCanvas = document.querySelector('canvas')
-    defaultCanvas.style.display = 'none'
-
     // Append the game canvas to the DOM element with the id of "phaser-container"
     const canvas = game.canvas
     const container = document.getElementById('phaser-container')

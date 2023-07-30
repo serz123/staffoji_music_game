@@ -1,3 +1,4 @@
+
 /** @jsxImportSource @emotion/react */
 import { css } from '@emotion/react'
 /**
@@ -65,14 +66,13 @@ export const NavBarCss = css`
   a {
     padding: 18px;
     display: inline-block;
-    height: 100%;
     text-decoration: none;
     color: inherit;
   }
 
   @media (max-width: 768px) {
     .menu {
-      height: 210px;
+      height: 100px;
       display: none;
       position: absolute;
       background: linear-gradient(to right, #87cefa, #1e90ff, #87cefa);
@@ -81,6 +81,10 @@ export const NavBarCss = css`
       text-align: center;
       padding: 0;
       flex-direction: column;
+    }
+
+    .navigation {
+      height: min-content;
     }
 
     li {

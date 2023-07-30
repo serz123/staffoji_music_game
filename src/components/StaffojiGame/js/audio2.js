@@ -74,7 +74,7 @@ class AudioFrequencyDetector {
     let SIZE = buf.length
     const rms = this.checkVolumen(SIZE, buf)
     // Change this to adjust the sensitivity!!!!!!!!! // MAke it back to 0.13 later
-    if (rms < 0.03)
+    if (rms < 0.013)
       // not enough signal
       return -1
 
@@ -153,6 +153,7 @@ class AudioFrequencyDetector {
    * Starts the audio processing.
    */
   async start() {
+    try {
     const input = await this.getMicInput()
     if (this.audioCtx.state === 'suspended') {
       await this.audioCtx.resume()
@@ -160,6 +161,9 @@ class AudioFrequencyDetector {
     this.source = this.audioCtx.createMediaStreamSource(input)
     this.source.connect(this.analyserNode)
     this.updatePitch() // Start updating pitch after the source is connected
+  } catch (error) {
+    this.activateMicMessage()
+  }
   }
 
   /**
@@ -230,7 +234,7 @@ class AudioFrequencyDetector {
   sendPitch() {
     this.analyserNode.getFloatTimeDomainData(this.buf)
     const volumen = this.checkVolumen(this.buf.length, this.buf)
-    if (volumen > 0.03) {
+    if (volumen > 0.013) {
       this.sendPitchTimeout = setTimeout(() => {
         this.sendPitch()
       }, 300)
@@ -240,6 +244,8 @@ class AudioFrequencyDetector {
       this.toneDetected = false
       this.detectedTone = null
     }
+  }
+  activateMicMessage() {
   }
 }
 
