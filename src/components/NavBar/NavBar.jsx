@@ -35,7 +35,7 @@ export function NavBar() {
 
   return (
     <div css={NavBarCss}>
-      <Router basename="/staffoji">
+      <Router>
         <div className="navigation">
           <input
             type="checkbox"
