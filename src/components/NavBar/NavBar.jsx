@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   NavLink,
   BrowserRouter as Router,
@@ -13,6 +13,7 @@ import { Game } from '../StaffojiGame/Game.jsx'
 // import { HighScores } from '../HighScores'
 // import { SingUp } from '../SingUp'
 import { PageNotFound } from '../PageNotFound/PageNotFound'
+import { TurnOnYourMic } from '../TurnOnYourMic/TurnOnYourMic'
 import { NavBarCss } from './NavBar.css.jsx'
 
 /**
@@ -21,6 +22,25 @@ import { NavBarCss } from './NavBar.css.jsx'
  * @returns {JSX.Element} A navigation bar component.
  */
 export function NavBar() {
+  const [mic, setMic] = useState(false)
+
+  // Get michrophon acess - If it is not turned on, do not open game page
+  async function getLocalStream() {
+    try {
+    await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+    setMic(true)
+   }
+  catch(err) {
+        console.error(`you got an error: ${err}`)
+        setMic(false)
+      }
+  }
+  useEffect(() => {
+    getLocalStream() // Call async function
+  }, [])
+
+  console.log('rendering')
+ 
   /**
    * State that tracks whether the checkbox is checked or not. Used to toggle the menu in mobile view.
    */
@@ -63,7 +83,7 @@ export function NavBar() {
         <div className="page-content">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/game" element={<Game />} />
+            <Route path="/game" element={mic ? <Game /> : <TurnOnYourMic />} />
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </div>

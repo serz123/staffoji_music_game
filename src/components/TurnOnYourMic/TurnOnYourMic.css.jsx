@@ -2,14 +2,15 @@
 import { css } from '@emotion/react'
 
 /**
- * CSS styles for the Home component.
+ * CSS styles for the TurnOnYourMic component.
  */
-export const HomeCss = css`
+export const TurnOnYourMicCss = css`
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
   padding-top: 30px;
-
+  
   h1 {
     margin: 0;
     font-size: 60px;
@@ -20,8 +21,7 @@ export const HomeCss = css`
   p {
     font-size: 30px;
     margin-bottom: 20px;
-    text-align: justify;
-    text-justify: inter-word;
+    text-align: center;
   }
 
   button {
@@ -41,19 +41,6 @@ export const HomeCss = css`
     transform: translate3d(0, -2px, 0);
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   }
-
-  a {
-    text-decoration: none;
-  }
-
-  .buttons {
-    justify-content: center;
-    display: flex;
-    flex-direction: row;
-    flex-grow: 0;
-    flex-shrink: 0;
-  }
-
   @media (max-width: 900px) {
     h1 {
       font-size: 50px;
@@ -87,6 +74,4 @@ export const HomeCss = css`
       margin: 5px;
     }
   }
-
 `
-/**/
