@@ -1,70 +1,39 @@
-# Getting Started with Create React App
+# Staffoji Web Application
+Welcome to the Staffoji Web Application! The purpose of the "Staffoji" game is to offer an interactive and entertaining solution for learning to recognize notes on a string instrument by playing a game-inspired challenge. Check out the game instructions on the home page, and then dive into the fun on the game page.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Author: Vanja Maric 
+Version: 1.0.0
 
-## Available Scripts
+## Play game
+ [Click here to play the game](https://www.staffojigame.se/)
 
-In the project directory, you can run:
+## Demo 
+ [Click here to see the demo video](https://www.youtube.com/watch?v=o_Zfmc6h9Qw&ab_channel=VanjaMaric)
 
-### `npm start`
+## Installation
+To install and run the application on your local machine, follow these steps:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- Clone the repository
+- Navigate to the project directory
+- Install dependencies using npm (Node Package Manager)
+- __Add .env variable: IMAGE_INLINE_SIZE_LIMIT=1__
+- Start the application: npm run start
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Usage
+The home page contains a brief description of the Staffoji game, along with basic gameplay instructions.
+By clicking on the "Game" navigation link or, you will be taken to the game page.
+On the game page, you can start playing the game and enjoy the engaging Staffoji experience.
+Follow the on-screen instructions to play and achieve the highest score.
 
-### `npm test`
+## Upcoming Features in Version 2
+In the upcoming Version 2 of the application, I am excited to introduce the following enhancements:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Additional game levels
+- Time challenge mode
+- Login and high scores system
 
-### `npm run build`
+## License
+This application is available under the MIT license. For more information, refer to the LICENSE file.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Contact
+If you have any questions, suggestions, or feedback, feel free to contact me via email: maricvanj@gmail.com
