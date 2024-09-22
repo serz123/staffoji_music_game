@@ -1,5 +1,7 @@
 import './App.css'
 import { NavBar } from './components/NavBar/NavBar.jsx'
+import { Footer } from './components/Footer/Footer.jsx'
+import { LoginProvider } from './components/Contexts/LoginContext'
 
 /**
  * The root component of the application.
@@ -9,11 +11,14 @@ import { NavBar } from './components/NavBar/NavBar.jsx'
  */
 function App() {
   return (
-    <>
-      <div className="div-container">
-        <NavBar />
+    <LoginProvider>
+      <div className="app">
+        <div className="content">
+          <NavBar />
+        </div>
+        <Footer className={'custom-footer'} />
       </div>
-    </>
+    </LoginProvider>
   )
 }
 

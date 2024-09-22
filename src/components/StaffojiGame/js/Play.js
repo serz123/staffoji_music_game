@@ -1,11 +1,7 @@
 import Phaser from 'phaser'
-import Player from './Character'
-import { createPlatforms } from './objects/platforms'
-import { createWater } from './objects/water'
-import { createClefs } from './objects/clefs'
-import { createCoins } from './objects/coins'
-import { createOtherObjects } from './objects/otherObjects'
-import { createFire } from './objects/fire'
+import Character from './Character'
+import LevelConfigurations from './objects/LevelConfigurations'
+
 import eventEmitter from './eventEmitter'
 import { createNoteImages } from './functions/createNoteImages'
 
@@ -24,49 +20,182 @@ class Play extends Phaser.Scene {
    * Creates the Play scene.
    */
   create() {
-    this.selectedClef = this.registry.get('clef')
+    this.selectedClef = this.registry.get('selectedClef')
+    this.level = this.registry.get('level')
     this.particleEmitters = []
     this.noteImages = []
     this.musicNotStarted = true
     this.score = 0
     this.lastVisitedClef = null
     this.audio = this.registry.get('audio')
+    this.instrument = this.registry.get('instrument')
     this.cameras.main.setBounds(0, 0, 7238, 670)
     this.restartButton = null
     this.menuButton = null
+    this.returningToSameClefCharacterDied = false
 
     // Music
     this.music = this.sound.add('bgMusic', { volume: 0.2, loop: true })
     this.coinSound = this.sound.add('coinSound', { volume: 0.8 })
-    this.deathSound = this.sound.add('deathSound', { volume: 0.1 })
+    // this.deathSound = this.sound.add('deathSound', { volume: 0.1 })
 
+    // logo
+    let logoSerz = this.add
+      .image(1050, 647, 'serzLogo')
+      .setDepth(10)
+      .setScale(0.4)
+    logoSerz.resolution = 2
     // Backgrund
-    this.add.image(500, 335, 'background')
-    this.add.image(1500, 335, 'background')
-    this.add.image(2500, 335, 'background')
-    this.add.image(3500, 335, 'background')
-    this.add.image(4500, 335, 'background')
-    this.add.image(5500, 335, 'background')
-    this.add.image(6500, 335, 'background')
-    this.add.image(7500, 335, 'background')
+    this.createBackgroundImages()
 
-    this.water = createWater(this)
+    // Get objects for the right level
+    this.levelConfig = LevelConfigurations.getConfig(this.level)
+
+    this.water = this.levelConfig.createWater(this)
     this.water.setDepth(2)
 
     // Other objects
-    this.otherObjects = createOtherObjects(this)
+    this.otherObjects = this.levelConfig.createOtherObjects(this)
 
-    this.platforms = createPlatforms(this)
+    // Platforms
+    this.platforms = this.levelConfig.createPlatforms(this)
+
     this.platforms.setDepth(2)
 
-    this.player = new Player({
-      scene: this,
-      x: 100, // Start 100
-      y: 426,
-      audio: this.audio,
+    // Character
+    this.createCharacter()
+
+    this.cameras.main.startFollow(this.character, false, 1, 0)
+
+    // World bounds
+    this.worldBounds()
+
+    // Text
+    this.createTexts()
+
+    // Menu button
+    this.createMenuButton()
+
+    // Notes
+    this.noteImages = createNoteImages(this.instrument)
+
+    // console.log('note images', this.noteImages)
+
+    // Coins
+    this.coins = this.levelConfig.createCoins(this)
+
+    // Clefs
+    this.clefs = this.levelConfig.createClefs(this, this.selectedClef)
+    // console.log('selected clef', this.selectedClef)
+    this.clefs.getChildren().forEach(function (clef) {
+      // Shining
+      this.createEmitterForClef(clef)
+    }, this)
+
+    // Fire
+    this.fire = this.levelConfig.createFire(this)
+
+    // End sign
+    this.endSign = this.levelConfig.createEndSign(this)
+
+    // Start idle animation
+    this.character.anims.play('idle')
+
+    // Overlaps
+    this.setUpOverlaps()
+
+    // Colliders
+    this.setUpColliders()
+
+    // Listener
+    this.setUpListener()
+  }
+
+  createBackgroundImages() {
+    const positions = [500, 1500, 2500, 3500, 4500, 5500, 6500, 7500]
+    positions.forEach((x) => this.add.image(x, 335, 'background'))
+  }
+
+  createCharacter() {
+    this.character = new Character(
+      {
+        scene: this,
+        x: 100, // Start 100
+        y: 426,
+        audio: this.audio,
+      },
+      eventEmitter
+    )
+    this.character.body.setCollideWorldBounds(true)
+  }
+
+  createTexts() {
+    this.scoreText = this.addText(16, 16, 'Scores: 0', '32px')
+    this.scoreText.setScrollFactor(0)
+
+    this.livesText = this.addText(
+      900,
+      16,
+      `Lives: ${this.character.lives}`,
+      '32px'
+    )
+    this.livesText.setScrollFactor(0)
+
+    this.startText = this.addText(214, 100, `Play any tone to start!`, '64px')
+  }
+
+  addText(x, y, text, fontSize) {
+    return this.add.text(x, y, text, {
+      fontSize: fontSize,
+      fill: '#000',
+      fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif',
+      resolution: 2.3,
     })
-    this.cameras.main.startFollow(this.player, false, 1, 0)
-    this.player.body.setCollideWorldBounds(true)
+  }
+
+  createMenuButton() {
+    this.menuButton = this.addButton(25, 645, 'menuButton')
+      .setScrollFactor(0)
+      .setScale(0.5)
+      .setDepth(10)
+    this.menuButton.on('pointerdown', () => {
+      this.handleMenuButton()
+      this.scene.stop('Play')
+    })
+    this.menuButton.on(
+      'pointerover',
+      () => (this.game.canvas.style.cursor = 'pointer')
+    )
+    this.menuButton.on(
+      'pointerout',
+      () => (this.game.canvas.style.cursor = 'default')
+    )
+  }
+
+  createEmitterForClef(clef) {
+    const emitter = this.add.particles(0, 0, 'flare', {
+      speed: 2,
+      livespan: 1500,
+      quantity: 1,
+      scale: { start: 0.4, end: 0 },
+      emitting: true,
+      emitZone: { type: 'random', source: clef.getBounds() },
+      duration: null,
+    })
+    emitter.start()
+    if (!clef.visible) {
+      emitter.setVisible(false)
+    }
+    this.particleEmitters.push(emitter)
+  }
+
+  /**
+   * Sets the world bounds. The right boundary is the same as the camera bounds.
+   * This is done to prevent the character from moving outside the camera.
+   * The left boundary is the same as the default world bounds.
+   * The bottom and top boundaries are the same as the default world bounds.
+   */
+  worldBounds() {
     const worldBounds = this.physics.world.bounds
     const rightBound = 7238 // Same as camera bounds
     this.physics.world.setBounds(
@@ -75,84 +204,30 @@ class Play extends Phaser.Scene {
       rightBound, // Right boundary
       worldBounds.height // Bottom boundary (default)
     )
+  }
 
-    // Text
-    this.scoreText = this.add.text(16, 16, 'Scores: 0', {
-      fontSize: '32px',
-      fill: '#000',
-    })
-    this.scoreText.setScrollFactor(0)
-    this.livesText = this.add.text(900, 16, `Lives: ${this.player.lives}`, {
-      fontSize: '32px',
-      fill: '#000',
-    })
-    this.livesText.setScrollFactor(0)
-    this.startText = this.add.text(100, 100, `Play any tone to start!`, {
-      fontSize: '64px',
-      fill: '#000',
-    })
-
-    this.menuButton = this.addButton(25, 645, 'homeButton')
-      .setScrollFactor(0)
-      .setScale(0.5)
-      .setDepth(10)
-    this.menuButton.on('pointerdown', () => {
-      this.handleMenuButton()
-      this.scene.stop('Play')
-    })
-
-    // Notes
-    this.noteImages = createNoteImages(this.selectedClef)
-
-    // Coins
-    this.coins = createCoins(this)
-
-    // Clefs
-    this.clefs = createClefs(this, this.selectedClef)
-    this.clefs.getChildren().forEach(function (clef) {
-      // Shining
-      const emitter = this.add.particles(0, 0, 'flare', {
-        speed: 2,
-        livespan: 1500,
-        quantity: 1,
-        scale: { start: 0.4, end: 0 },
-        emitting: true,
-        emitZone: { type: 'random', source: clef.getBounds() },
-        duration: null,
-      })
-      emitter.start()
-      if (!clef.visible) {
-        emitter.setVisible(false)
-      }
-      this.particleEmitters.push(emitter)
-    }, this)
-
-    // Fire
-    this.fire = createFire(this)
-
-    // Start idle animation
-    this.player.anims.play('idle')
-
-    this.physics.add.collider(this.player, this.platforms)
-
+  /**
+   * Sets up the overlaps between the character and other objects.
+   */
+  setUpOverlaps() {
     this.physics.add.overlap(
-      this.player,
+      this.character,
       this.clefs,
-      this.showAndHideNotes,
+      this.handleClefInteraction,
       null,
       this
     )
 
     this.physics.add.overlap(
-      this.player,
+      this.character,
       this.water,
-      this.playerDeath,
+      this.characterDied,
       null,
       this
     )
 
     this.physics.add.overlap(
-      this.player,
+      this.character,
       this.coins,
       this.collectCoin,
       null,
@@ -160,16 +235,31 @@ class Play extends Phaser.Scene {
     )
 
     this.physics.add.overlap(
-      this.player,
+      this.character,
       this.fire,
-      this.playerBurnedInFire,
+      this.characterBurnedInFire,
       null,
       this
     )
-    
-    // Handel wrnog played notes
+
+    this.physics.add.overlap(
+      this.character,
+      this.endSign,
+      this.characterWin,
+      null,
+      this
+    )
+  }
+
+  /**
+   * Sets up the colliders between the character and other objects.
+   */
+  setUpColliders() {
+    this.physics.add.collider(this.character, this.platforms)
+  }
+
+  setUpListener() {
     eventEmitter.on('wrongTone', this.dropTheStone, this)
-    eventEmitter.on('playerWin', this.playerWin, this)
     eventEmitter.once('shutdown', this.shutDownListener, this)
   }
 
@@ -177,52 +267,58 @@ class Play extends Phaser.Scene {
    * Updates the Play scene on every frame.
    */
   update() {
-    this.player.update()
-    if (this.player.readyForMusic && this.musicNotStarted) {
+    this.character.update()
+    if (this.character.readyForMusic && this.musicNotStarted) {
       this.music.play()
       this.startText.destroy() // When music starts for the first time, destroy the text
       this.musicNotStarted = false
     }
   }
 
+  // HELP FUNCTIONS /--------------------------------/
+
   /**
    * Shows and hides the notes for a specific clef.
-   * @param {Phaser.GameObjects.GameObject} player - The player object.
+   * @param {Phaser.GameObjects.GameObject} character - The character object.
    * @param {Phaser.GameObjects.GameObject} clef - The clef object.
    */
-  showAndHideNotes(player, clef) {
-    if (!this.player.isDead) {
-      this.fadeOutMusic()
-      this.lastVisitedClef = clef
-      clef.disableBody(true, true)
-      const associatedEmitter = this.findAssociatedEmitter(clef)
-      if (associatedEmitter) {
-        associatedEmitter.stop()
+  handleClefInteraction(character, clef) {
+    if (this.lastVisitedClef === clef) {
+      // // Do this so the character do not activate clef that it just left walking towards left
+      if (!this.returningToSameClefCharacterDied) {
+        // console.log('NEEEEEEEEEEEEEEEE')
+        return
       }
+    }
+    if (!this.character.isDead) {
+      this.stopMusicAndHideClef(clef)
+      // console.log('hiding the clef')
 
+      // Show the note directions, note images, and play the music again after 1.5 seconds
       this.showDirections(
         clef.directionInfo.jumpDirection,
         clef.directionInfo.noDirection
       )
 
-      const showClefAgain = () => {
-        const isOverlapping = this.checkOverlap(player, clef)
-        if (!isOverlapping) {
-          if (!this.music.isPlaying) {
-            this.fadeInMusic()
-          }
-          this.removeDirections()
-          clef.enableBody(true, clef.x, clef.y, true, true)
-          if (associatedEmitter) {
-            associatedEmitter.start()
-          }
-        } else {
-          this.time.delayedCall(300, showClefAgain, [], this)
-        }
-      }
-
-      this.time.delayedCall(1500, showClefAgain, [], this)
+      const associatedEmitter = this.findAssociatedEmitter(clef)
+      this.removeAssociatedEmitterWhenCharacterTouchesClef(associatedEmitter)
+      this.returningToSameClefCharacterDied = false // Do this so the character do not activate clef that it just left walking towards left
+      this.time.delayedCall(
+        1500,
+        () => this.showClefAgain(character, clef, associatedEmitter),
+        [],
+        this
+      )
     }
+  }
+
+  /**
+   * Stops the music and hides the clef after the character after the character has died.
+   */
+  stopMusicAndHideClef(clef) {
+    this.fadeOutMusic()
+    this.lastVisitedClef = clef
+    clef.disableBody(true, true)
   }
 
   /**
@@ -241,16 +337,32 @@ class Play extends Phaser.Scene {
   }
 
   /**
-   * Fades in the background music.
+   * Shows the note directions for a specific clef.
+   * @param {string} jumpDirection - The jump direction.
+   * @param {string} noDirection - The no direction.
    */
-  fadeInMusic() {
-    this.music.resume()
-    this.tweens.add({
-      targets: this.music,
-      volume: 0.2,
-      duration: 1000,
-      callbackScope: this,
-    })
+  showDirections(jumpDirection, noDirection) {
+    this.time.delayedCall(
+      300,
+      () => {
+        this.stopCharacter()
+        this.setRandomNotes(jumpDirection, noDirection)
+        this.createArrows(jumpDirection, noDirection)
+      },
+      [],
+      this
+    )
+  }
+
+  /**
+   * Stops the character.
+   */
+  stopCharacter() {
+    this.character.madeFirstMove = true
+    this.character.detectedTone = null
+    this.character.body.setVelocityX(0)
+    this.character.anims.play('idle')
+    this.character.stopJump = false
   }
 
   /**
@@ -269,18 +381,60 @@ class Play extends Phaser.Scene {
     )
   }
 
+  removeAssociatedEmitterWhenCharacterTouchesClef(associatedEmitter) {
+    if (associatedEmitter) {
+      associatedEmitter.stop()
+    }
+  }
+
+  showClefAgain(character, clef, associatedEmitter) {
+    const isOverlapping = this.checkOverlap(character, clef)
+    if (!isOverlapping) {
+      if (!this.music.isPlaying) {
+        this.fadeInMusic()
+      }
+      this.removeDirections()
+      clef.enableBody(true, clef.x, clef.y, true, true)
+      // console.log('showing the clef')
+      this.returnAssociatedEmitter(associatedEmitter)
+    } else {
+      // console.log('still overlapping. cannot show the clef')
+      this.time.delayedCall(
+        300,
+        () => this.showClefAgain(character, clef),
+        [],
+        this
+      )
+    }
+  }
+
   /**
-   * Checks if the player overlaps with a clef.
-   * @param {Phaser.GameObjects.GameObject} player - The player object.
+   * Checks if the character overlaps with a clef.
+   * @param {Phaser.GameObjects.GameObject} character - The character object.
    * @param {Phaser.GameObjects.GameObject} clef - The clef object.
    * @returns {boolean} True if there is an overlap, false otherwise.
    */
-  checkOverlap(player, clef) {
-    const playerBounds = player.getBounds()
+  checkOverlap(character, clef) {
+    const characterBounds = character.getBounds()
     const clefBounds = clef.getBounds()
-    return Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, clefBounds)
+    return Phaser.Geom.Intersects.RectangleToRectangle(
+      characterBounds,
+      clefBounds
+    )
   }
 
+  /**
+   * Fades in the background music.
+   */
+  fadeInMusic() {
+    this.music.resume()
+    this.tweens.add({
+      targets: this.music,
+      volume: 0.2,
+      duration: 1000,
+      callbackScope: this,
+    })
+  }
   /**
    * Removes the note directions.
    */
@@ -289,56 +443,92 @@ class Play extends Phaser.Scene {
     this.arrow.clear(true, true)
   }
 
-  /**
-   * Shows the note directions for a specific clef.
-   * @param {string} jumpDirection - The jump direction.
-   * @param {string} noDirection - The no direction.
-   */
-  showDirections(jumpDirection, noDirection) {
-    this.time.delayedCall(
-      300,
-      () => {
-        this.stopPlayer()
-        this.setRandomNotes(jumpDirection, noDirection)
-        this.createNoteMasks()
-        this.createArrows(jumpDirection, noDirection)
-      },
-      [],
-      this
-    )
+  returnAssociatedEmitter(associatedEmitter) {
+    if (associatedEmitter) {
+      associatedEmitter.start()
+    }
   }
 
-  /**
-   * Stops the player.
-   */
-  stopPlayer() {
-    this.player.madeFirstMove = true
-    this.player.detectedTone = null
-    this.player.body.setVelocityX(0)
-    this.player.anims.play('idle')
-    this.player.stopJump = false
-  }
-
+  // -------------------Create notes for directions------------------- //
   /**
    * Sets random notes for the next move.
    * @param {string} jumpDirection - The jump direction.
    * @param {string} noDirection - The no direction.
    */
   setRandomNotes(jumpDirection, noDirection) {
+    const numberOfNoteImages = this.numberOfNoteImages()
+    const [randomNumber1, randomNumber2, randomNumber3] =
+      this.generateRandomNumbersForNoteImages(numberOfNoteImages)
+
+    this.notes = this.physics.add.staticGroup()
+    this.addNoteImages(noDirection, randomNumber1, randomNumber2, randomNumber3)
+
+    let rightNote = this.noteImages[randomNumber1].name
+    if (noDirection === 'right') {
+      rightNote = null
+    }
+
+    let leftNote = this.noteImages[randomNumber2].name
+    if (noDirection === 'left') {
+      leftNote = null
+    }
+
+    let upNote = this.noteImages[randomNumber3].name
+    if (noDirection === 'up') {
+      upNote = null
+    }
+
+    this.character.setTonesForDetection(
+      leftNote,
+      rightNote,
+      upNote,
+      jumpDirection
+    )
+  }
+
+  /**
+   * Returns the number of note images for the selected clef.
+   */
+  numberOfNoteImages() {
     let numberOfNoteImages = 0
-    switch (this.selectedClef) {
-      case 'treble':
+    switch (this.instrument) {
+      case 'violin':
         numberOfNoteImages = 17
         break
-      case 'alto':
+      case 'viola':
         numberOfNoteImages = 17
         break
-      case 'bass':
+      case 'cello':
+        numberOfNoteImages = 16
+        break
+      case 'bassInstrument':
+        numberOfNoteImages = 12
+        break
+      case 'piano':
+        numberOfNoteImages = 22
+        break
+      case 'guitar':
+        numberOfNoteImages = 25
+        break
+      case 'flute':
+        numberOfNoteImages = 16
+        break
+      case 'blockFl':
         numberOfNoteImages = 16
         break
       default:
-        break
+        numberOfNoteImages = 12
     }
+    return numberOfNoteImages
+  }
+
+  /**
+   * Creates random numbers for the note images.
+   * @param {integer} numberOfNoteImages - The number of note images.
+   * @returns {integer[]} The random numbers.
+   */
+  generateRandomNumbersForNoteImages(numberOfNoteImages) {
+    // console.log('number of note images', numberOfNoteImages)
     const randomNumber1 = Math.floor(Math.random() * numberOfNoteImages)
     let randomNumber2 = Math.floor(Math.random() * numberOfNoteImages)
     let randomNumber3 = Math.floor(Math.random() * numberOfNoteImages)
@@ -350,46 +540,39 @@ class Play extends Phaser.Scene {
     while (randomNumber3 === randomNumber1 || randomNumber3 === randomNumber2) {
       randomNumber3 = Math.floor(Math.random() * numberOfNoteImages)
     }
+    return [randomNumber1, randomNumber2, randomNumber3]
+  }
 
-    this.notes = this.physics.add.staticGroup()
-
+  /**
+   * Creates notes for the note directions.
+   * @param {string} noDirection - The no direction.
+   * @param {integer} randomNumber1 - The first random number.
+   * @param {integer} randomNumber2 - The second random number.
+   * @param {integer} randomNumber3 - The third random number.
+   */
+  addNoteImages(noDirection, randomNumber1, randomNumber2, randomNumber3) {
     if (noDirection !== 'right') {
       this.createNote(
-        this.player.x + 92,
-        this.player.y + 2,
+        this.character.x + 92,
+        this.character.y + 2,
         this.noteImages[randomNumber1].image
       )
     }
 
     if (noDirection !== 'left') {
       this.createNote(
-        this.player.x - 92,
-        this.player.y + 2,
+        this.character.x - 92,
+        this.character.y + 2,
         this.noteImages[randomNumber2].image
       )
-      this.player.flipX = false
+      this.character.flipX = false
     }
 
     this.createNote(
-      this.player.x,
-      this.player.y - 106,
+      this.character.x,
+      this.character.y - 106,
       this.noteImages[randomNumber3].image
     )
-
-    let rightNote = this.noteImages[randomNumber1].name
-    if (noDirection === 'right') {
-      rightNote = null
-    }
-    let leftNote = this.noteImages[randomNumber2].name
-    if (noDirection === 'left') {
-      leftNote = null
-    }
-    let upNote = this.noteImages[randomNumber3].name
-    if (noDirection === 'up') {
-      upNote = null
-    }
-
-    this.player.setTonesForDetection(leftNote, rightNote, upNote, jumpDirection)
   }
 
   /**
@@ -399,7 +582,8 @@ class Play extends Phaser.Scene {
    * @param {string} image - The image key of the note.
    */
   createNote(x, y, image) {
-    const note = this.notes.create(x, y, image).setScale(0.9)
+    const note = this.notes.create(x, y, image)
+    note.resolution = 5
     note.setMask(this.createNoteMask(note))
   }
 
@@ -424,15 +608,7 @@ class Play extends Phaser.Scene {
       .createGeometryMask()
   }
 
-  /**
-   * Creates masks for all the notes.
-   */
-  createNoteMasks() {
-    this.notes.getChildren().forEach((note) => {
-      note.setMask(this.createNoteMask(note))
-    })
-  }
-
+  // ---------------- Arrows for directions ---------------- //
   /**
    * Creates arrows for the note directions.
    * @param {string} jumpDirection - The jump direction.
@@ -440,27 +616,290 @@ class Play extends Phaser.Scene {
    */
   createArrows(jumpDirection, noDirection) {
     this.arrow = this.physics.add.staticGroup()
+    this.createRightArrow(noDirection)
+    this.createLeftArrow(noDirection)
+    this.createUpArrows(jumpDirection)
+  }
 
-    if (noDirection !== 'right') {
-      this.arrow.create(this.player.x + 92, this.player.y - 62, 'arrowRight')
-    }
-
-    if (noDirection !== 'left') {
-      this.arrow
-        .create(this.player.x - 92, this.player.y - 62, 'arrowRight')
-        .setFlipX(true)
-    }
+  /**
+   *  Creates up arrows for the jump direction.
+   */
+  createUpArrows(jumpDirection) {
+    const arrow = this.arrow.create(
+      this.character.x,
+      this.character.y - 182,
+      'jumpRight'
+    )
 
     if (jumpDirection === 'right') {
-      this.arrow
-        .create(this.player.x, this.player.y - 182, 'jumpRight')
-        .setAngle(50)
+      arrow.setAngle(50)
     } else if (jumpDirection === 'left') {
+      arrow.setAngle(-50)
+      arrow.setFlipX(true)
+    }
+  }
+
+  /**
+   * Creates a right arrow. If the noDirection is right, no arrow is created.
+   * @param {string} noDirection - The no direction.
+   */
+  createRightArrow(noDirection) {
+    if (noDirection !== 'right') {
+      this.arrow.create(
+        this.character.x + 92,
+        this.character.y - 62,
+        'arrowRight'
+      )
+    }
+  }
+
+  /**
+   * Creates a left arrow. If the noDirection is left, no arrow is created.
+   */
+  createLeftArrow(noDirection) {
+    if (noDirection !== 'left') {
       this.arrow
-        .create(this.player.x, this.player.y - 182, 'jumpRight')
-        .setAngle(-50)
+        .create(this.character.x - 92, this.character.y - 62, 'arrowRight')
         .setFlipX(true)
     }
+  }
+
+  // -------------------Character death------------------- //
+  /**
+   * Drops a stone to punish the character for playing the wrong note.
+   */
+  dropTheStone() {
+    if (this.character.isDead) {
+      return
+    }
+    this.stone = this.physics.add.image(this.character.x, 0, 'stone')
+    this.stone.setGravityY(300)
+    this.physics.add.collider(this.stone, this.platforms)
+    this.physics.add.overlap(
+      this.character,
+      this.stone,
+      this.characterDeathOfStone,
+      null,
+      this
+    )
+  }
+
+  /**
+   * Handles the character's death when hit by a falling stone.
+   */
+  characterDeathOfStone() {
+    this.stopCameraPLayerIsDead()
+    this.character.setVisible(false)
+    this.characterDied()
+  }
+
+  stopCameraPLayerIsDead() {
+    // Storing the current camera position
+    const cameraScrollX = this.cameras.main.scrollX
+    const cameraScrollY = this.cameras.main.scrollY
+    // Setting the camera to the stored position
+    this.cameras.main.stopFollow(this.character)
+    this.cameras.main.setScroll(cameraScrollX, cameraScrollY)
+  }
+
+  /**
+   * Handles the character's death when burned in fire.
+   */
+  characterBurnedInFire() {
+    this.time.delayedCall(
+      500,
+      () => {
+        // Let  come into the fire
+        this.character.detectedTone = null // Stop moving the character
+        this.character.setVisible(false)
+        this.characterDied()
+      },
+      [],
+      this
+    )
+  }
+
+  /**
+   * Handles the character's death in water.
+   */
+  characterDied() {
+    // DEATH IN GELERAL (WATER, ENEMY, FALLING)
+    if (this.character.isDead) {
+      return // The character is already dead
+    }
+    this.character.isDead = true
+    this.returningToSameClefCharacterDied = true
+    this.music.pause()
+    this.character.detectedTone = null
+    this.character.body.setVelocityX(0)
+    this.character.body.setVelocityY(0)
+    this.character.lives--
+    this.livesText.setText(`Lives: ${this.character.lives}`)
+    this.continueGameOrGameOver()
+  }
+
+  /**
+   * Continues the game or handles the game over state depending on the character's lives.
+   */
+  continueGameOrGameOver() {
+    if (this.character.lives > 0) {
+      this.time.addEvent({
+        delay: 2000,
+        callback: this.returnCharacter,
+        callbackScope: this,
+      })
+    } else {
+      this.gameOver()
+    }
+  }
+
+  /**
+   * Returns the character to the last visited clef after death.
+   */
+  returnCharacter() {
+    if (this.stone) {
+      this.stone.destroy()
+    }
+    if (this.lastVisitedClef) {
+      this.character.setPosition(this.lastVisitedClef.x, 100)
+    }
+    this.character.setVisible(true)
+    this.cameras.main.startFollow(this.character)
+
+    this.character.isDead = false // Set character status to alive
+  }
+
+  /**
+   * Handles the game over state.
+   */
+  gameOver() {
+    this.music.stop()
+    this.addGameOverWindow()
+    this.addGameOverText()
+    this.addRestartButtonInGameOver()
+    this.addMenuButtonInGameOver()
+  }
+
+  /**
+   * Adds the game over window after the character loses all lives.
+   */
+  addGameOverWindow() {
+    this.gameOverWindow = this.add
+      .image(500, 335, 'window')
+      .setScrollFactor(0)
+      .setDepth(100)
+  }
+
+  /**
+   * Adds the game over text to game over window after the character loses all lives.
+   */
+  addGameOverText() {
+    this.gameOverText = this.addText(
+      500,
+      335,
+      `Game over! \nYour scores: ${this.score}`,
+      '32px'
+    ).setDepth(101)
+    this.gameOverText.setOrigin(0.5).setScrollFactor(0)
+  }
+
+  /**
+   * Adds the restart button to game over window after the character loses all lives.
+   */
+  addRestartButtonInGameOver() {
+    this.restartButton = this.addButton(
+      this.gameOverWindow.x - 80,
+      this.gameOverWindow.y + 120,
+      'restartButton'
+    )
+      .setScrollFactor(0)
+      .setDepth(102)
+
+    this.restartButton.on(
+      'pointerover',
+      () => (this.game.canvas.style.cursor = 'pointer')
+    )
+
+    this.restartButton.on(
+      'pointerout',
+      () => (this.game.canvas.style.cursor = 'default')
+    )
+    this.restartButton.on('pointerdown', () => {
+      this.restartGame()
+    })
+  }
+
+  /**
+   * Adds the menu button to game over window after the character loses all lives.
+   */
+  addMenuButtonInGameOver() {
+    this.menuButton = this.addButton(
+      this.gameOverWindow.x + 80,
+      this.gameOverWindow.y + 120,
+      'menuButton'
+    )
+      .setScrollFactor(0)
+      .setDepth(102)
+
+    this.menuButton.on(
+      'pointerover',
+      () => (this.game.canvas.style.cursor = 'pointer')
+    )
+    this.menuButton.on(
+      'pointerout',
+      () => (this.game.canvas.style.cursor = 'default')
+    )
+    this.menuButton.on('pointerdown', () => {
+      this.handleMenuButton()
+    })
+  }
+
+  /**
+   * Collects a coin and increases the score.
+   * @param {Phaser.GameObjects.GameObject} character - The character object.
+   * @param {Phaser.GameObjects.GameObject} coin - The coin object.
+   */
+  collectCoin(character, coin) {
+    this.coinSound.play()
+    this.score += 10
+    this.scoreText.setText(`Scores: ${this.score}`)
+    coin.disableBody(true, true)
+  }
+
+  /**
+   * Handles the character's win state.
+   */
+  characterWin() {
+    setTimeout(() => {
+      // Wait for the character to pass the end sign
+      this.stopCharacter()
+      this.winText = this.addText(
+        200,
+        335,
+        `You won! Your scores: ${this.score}`,
+        '64px'
+      )
+      this.winText.setScrollFactor(0)
+    }, 1000)
+  }
+
+  /**
+   * Restarts the game.
+   */
+  restartGame() {
+    // Do not reload because of side effect eith stone dropping multiple times.
+
+    this.destroy()
+    this.scene.start('Play')
+  }
+
+  /**
+   * Handles the menu button click.
+   */
+  handleMenuButton() {
+    this.audio.stop()
+    this.destroy()
+    this.scene.start('Menu')
   }
 
   /**
@@ -480,183 +919,10 @@ class Play extends Phaser.Scene {
   }
 
   /**
-   * Handles the player's death in water.
-   */
-  playerDeath() {
-    // DEATH IN GELERAL (WATER, ENEMY, FALLING)
-    if (this.player.isDead) {
-      return // The player is already dead
-    }
-    this.player.isDead = true
-    this.music.pause()
-    this.player.detectedTone = null
-    this.player.body.setVelocityX(0)
-    this.player.body.setVelocityY(0)
-    this.player.lives--
-    this.livesText.setText(`Lives: ${this.player.lives}`)
-    if (this.player.lives > 0) {
-      this.time.addEvent({
-        delay: 2000,
-        callback: this.returnPlayer,
-        callbackScope: this,
-      })
-    } else {
-      this.gameOver()
-    }
-  }
-
-  /**
-   * Returns the player to the last visited clef after death.
-   */
-  returnPlayer() {
-    if (this.stone) {
-      this.stone.destroy()
-    }
-    if (this.lastVisitedClef) {
-      this.player.setPosition(this.lastVisitedClef.x, 100)
-    }
-    this.player.setVisible(true)
-    this.cameras.main.startFollow(this.player)
-
-    this.player.isDead = false // Set player status to alive
-  }
-
-  /**
-   * Handles the player's death when hit by a falling stone.
-   */
-  playerDeathOfStone() {
-    // Storing the current camera position
-    const cameraScrollX = this.cameras.main.scrollX
-    const cameraScrollY = this.cameras.main.scrollY
-    // Setting the camera to the stored position
-    this.cameras.main.stopFollow(this.player)
-    this.cameras.main.setScroll(cameraScrollX, cameraScrollY)
-    this.player.setVisible(false)
-    this.playerDeath()
-  }
-
-  /**
-   * Handles the player's death when burned in fire.
-   */
-  playerBurnedInFire() {
-    this.time.delayedCall(
-      500,
-      () => {
-        // Let player come into the fire
-        this.player.detectedTone = null // Stop moving the player
-        this.player.setVisible(false)
-        this.playerDeath()
-      },
-      [],
-      this
-    )
-  }
-
-  /**
-   * Collects a coin and increases the score.
-   * @param {Phaser.GameObjects.GameObject} player - The player object.
-   * @param {Phaser.GameObjects.GameObject} coin - The coin object.
-   */
-  collectCoin(player, coin) {
-    this.coinSound.play()
-    this.score += 10
-    this.scoreText.setText(`Scores: ${this.score}`)
-    coin.disableBody(true, true)
-  }
-
-  /**
-   * Drops a stone to punish the player for playing the wrong note.
-   */
-  dropTheStone() {
-    if (this.player.isDead) {
-      return
-    }
-    this.stone = this.physics.add.image(this.player.x, 0, 'stone')
-    this.stone.setGravityY(300)
-    this.physics.add.collider(this.stone, this.platforms)
-    this.physics.add.overlap(
-      this.player,
-      this.stone,
-      this.playerDeathOfStone,
-      null,
-      this
-    )
-  }
-
-  /**
-   * Handles the game over state.
-   */
-  gameOver() {
-    this.music.stop()
-    this.gameOverWindow = this.add
-      .image(500, 335, 'window')
-      .setScrollFactor(0)
-      .setDepth(100)
-    this.gameOverText = this.add
-      .text(500, 335, `Game over! \nYour scores: ${this.score}`, {
-        fontSize: '32px',
-        fill: '#000',
-      })
-      .setDepth(101)
-    this.gameOverText.setOrigin(0.5).setScrollFactor(0)
-    this.restartButton = this.addButton(
-      this.gameOverWindow.x - 80,
-      this.gameOverWindow.y + 120,
-      'restartButton'
-    )
-      .setScrollFactor(0)
-      .setDepth(102)
-    this.restartButton.on('pointerdown', () => {
-      this.restartGame()
-    })
-    this.menuButton = this.addButton(
-      this.gameOverWindow.x + 80,
-      this.gameOverWindow.y + 120,
-      'homeButton'
-    )
-      .setScrollFactor(0)
-      .setDepth(102)
-    this.menuButton.on('pointerdown', () => {
-      this.handleMenuButton()
-    })
-  }
-
-  /**
-   * Handles the player's win state.
-   */
-  playerWin() {
-    this.winText = this.add.text(
-      100,
-      335,
-      `You won! Your scores: ${this.score}`,
-      { fontSize: '64px', fill: '#000' }
-    )
-    this.winText.setScrollFactor(0)
-  }
-
-  /**
-   * Restarts the game.
-   */
-  restartGame() {
-    // Do not reload because of side effect eith stone dropping multiple times.
-    this.destroy()
-    this.scene.start('Play')
-  }
-
-  /**
-   * Handles the menu button click.
-   */
-  handleMenuButton() {
-    this.destroy()
-    this.scene.start('Menu')
-  }
-
-  /**
    * Shuts down the event listeners.
    */
   shutDownListener() {
     eventEmitter.off('wrongTone', this.dropTheStone, this)
-    eventEmitter.off('playerWin', this.playerWin, this)
   }
 
   /**
@@ -665,15 +931,8 @@ class Play extends Phaser.Scene {
   destroy() {
     this.shutDownListener()
     this.music.stop()
-    console.log('destroying')
+    // console.log('destroying')
   }
 }
 
 export default Play
-
-// MAKE SOUNDS CONTRIBUTIONS
-// https://opengameart.org/content/completion-sound za completetask i gamae.waw
-// bg music https://opengameart.org/content/woodland-fantasy
-// song 18 https://opengameart.org/content/crystal-cave-song18
-
-// AUTOMATED AND PEER TO PEER TEST RAPPORT

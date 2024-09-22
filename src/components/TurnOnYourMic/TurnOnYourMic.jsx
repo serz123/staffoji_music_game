@@ -13,7 +13,10 @@ export function TurnOnYourMic() {
   return (
     <div css={TurnOnYourMicCss}>
       <h1>Microphone access denied</h1>
-      <p>Please allow access to the microphone on your computer. You need microphone access to play this game.</p>
+      <p>
+        Please allow access to the microphone on your computer. You need
+        microphone access to play this game.
+      </p>
       <button onClick={handleButtonClick}>Reload</button>
     </div>
   )

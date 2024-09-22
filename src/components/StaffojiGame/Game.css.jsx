@@ -5,12 +5,13 @@ import { css } from '@emotion/react'
  * CSS styles for the Game component.
  */
 export const GameCss = css`
-  padding-top: 5px;
+  padding: 0;
   max-width: 100%;
   max-height: 100%;
   text-align: center;
-  :nth-of-type(1) {
-    max-height: 100%;
-    margin: 0;
+  z-index: 200;
+
+  .navigation {
+    position: absolute;
   }
 `
